@@ -1,0 +1,23 @@
+<CycloneDDS>
+  <Domain>
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <!-- Static IPs due to de-activating multicast discovery -->
+      <Peers>
+        <Peer address="localhost"/>
+        <Peer address="${ROBOT_IP}"/>
+      </Peers>
+    </Discovery>
+    <General>
+      <!--
+      <AllowMulticast>false</AllowMulticast>
+      <EnableMulticastLoopback>true</EnableMulticastLoopback>
+      -->
+      <DontRoute>true</DontRoute>
+      <Interfaces>
+        <NetworkInterface address="${YOUR_IP}"/>
+      </Interfaces>
+      <Transport>default</Transport>
+    </General>
+  </Domain>
+</CycloneDDS>
