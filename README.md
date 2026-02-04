@@ -169,7 +169,7 @@ For [**Visual Studio Code Dev Containers integration**](https://marketplace.visu
 In order to be able to run **graphical user interfaces** from inside the Docker you might have to type
 
 ```bash
-$ xhost +
+$ xhost +local:docker
 ```
 
-on the **host system**. When using a user with the same name, user and group id as the host system this should not be necessary.
+on the **host system**. This allows local Docker containers to access your X11 display. Alternatively, you can use `xhost +` for broader access (less secure). When using a user with the same name, user and group id as the host system this should not be necessary.

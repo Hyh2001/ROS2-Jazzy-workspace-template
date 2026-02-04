@@ -136,10 +136,12 @@ detect_nvidia_gpu() {
 
 # Function to get network interfaces and IPs
 get_network_interfaces() {
+    # Try ip command first (more portable)
     if command -v ip &> /dev/null; then
-        ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v "127.0.0.1"
+        ip -4 addr show 2>/dev/null | grep -E 'inet [0-9]' | awk '{print $2}' | cut -d'/' -f1 | grep -v "127.0.0.1"
     elif command -v ifconfig &> /dev/null; then
-        ifconfig | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v "127.0.0.1"
+        # Fallback to ifconfig (BSD-style)
+        ifconfig 2>/dev/null | grep -E 'inet [0-9]' | awk '{print $2}' | grep -v "127.0.0.1"
     else
         echo "127.0.0.1"
     fi
@@ -179,6 +181,18 @@ backup_config() {
     fi
 }
 
+# Helper function to parse YAML value
+parse_yaml_value() {
+    local key=$1
+    local file=$2
+    # Match key: "value" or key: value, preserving spaces in values
+    # Only trim leading/trailing spaces, not spaces within the value
+    grep "^[[:space:]]*${key}:" "$file" 2>/dev/null | \
+        sed "s/^[[:space:]]*${key}:[[:space:]]*//" | \
+        sed 's/^"\(.*\)"$/\1/' | \
+        sed 's/^'"'"'\(.*\)'"'"'$/\1/' || echo ""
+}
+
 # Function to read configuration from YAML file
 read_yaml_config() {
     local config_file=$1
@@ -190,15 +204,15 @@ read_yaml_config() {
     
     print_info "Reading configuration from: $config_file"
     
-    # Parse YAML using basic grep/sed (works for simple YAML)
-    SELECTED_VARIANT=$(grep "variant:" "$config_file" | sed 's/.*variant:\s*"\?\([^"]*\)"\?.*/\1/' | tr -d ' ' || echo "")
-    AMENT_WORKSPACE_DIR=$(grep "ament_workspace_dir:" "$config_file" | sed 's/.*ament_workspace_dir:\s*"\?\([^"]*\)"\?.*/\1/' | tr -d ' ' || echo "")
-    ROS_DOMAIN_ID=$(grep "ros_domain_id:" "$config_file" | sed 's/.*ros_domain_id:\s*"\?\([^"]*\)"\?.*/\1/' | tr -d ' ' || echo "")
-    YOUR_IP=$(grep "your_ip:" "$config_file" | sed 's/.*your_ip:\s*"\?\([^"]*\)"\?.*/\1/' | tr -d ' ' || echo "")
-    ROBOT_IP=$(grep "robot_ip:" "$config_file" | sed 's/.*robot_ip:\s*"\?\([^"]*\)"\?.*/\1/' | tr -d ' ' || echo "")
-    ROBOT_HOSTNAME=$(grep "robot_hostname:" "$config_file" | sed 's/.*robot_hostname:\s*"\?\([^"]*\)"\?.*/\1/' | tr -d ' ' || echo "")
-    UID_VALUE=$(grep "uid:" "$config_file" | sed 's/.*uid:\s*"\?\([^"]*\)"\?.*/\1/' | tr -d ' ' || echo "")
-    GID_VALUE=$(grep "gid:" "$config_file" | sed 's/.*gid:\s*"\?\([^"]*\)"\?.*/\1/' | tr -d ' ' || echo "")
+    # Parse YAML using helper function
+    SELECTED_VARIANT=$(parse_yaml_value "variant" "$config_file")
+    AMENT_WORKSPACE_DIR=$(parse_yaml_value "ament_workspace_dir" "$config_file")
+    ROS_DOMAIN_ID=$(parse_yaml_value "ros_domain_id" "$config_file")
+    YOUR_IP=$(parse_yaml_value "your_ip" "$config_file")
+    ROBOT_IP=$(parse_yaml_value "robot_ip" "$config_file")
+    ROBOT_HOSTNAME=$(parse_yaml_value "robot_hostname" "$config_file")
+    UID_VALUE=$(parse_yaml_value "uid" "$config_file")
+    GID_VALUE=$(parse_yaml_value "gid" "$config_file")
     
     # Handle "auto" values
     if [ "$YOUR_IP" = "auto" ]; then
@@ -455,8 +469,9 @@ display_next_steps() {
     echo ""
     
     if [[ "$SELECTED_VARIANT" == *"gui"* ]]; then
-        echo "4. For GUI applications, run on host:"
-        print_color "${CYAN}" "   xhost +"
+        echo "4. For GUI applications, run on host (choose one):"
+        print_color "${CYAN}" "   xhost +local:docker    # Recommended: allows local Docker containers only"
+        print_color "${CYAN}" "   xhost +                # Less secure: allows all X11 clients"
         echo ""
     fi
     
