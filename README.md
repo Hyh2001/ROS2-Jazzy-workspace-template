@@ -32,6 +32,66 @@ ros/
 
 ## 1. Set-up
 
+### Quick Setup with Interactive Script (Recommended)
+
+The easiest way to configure your workspace is using the **interactive setup script**:
+
+```bash
+$ ./setup-workspace.sh
+```
+
+This script will guide you through:
+- Selecting a Docker Compose configuration (base, gui, nvidia, gui-nvidia, or vscode)
+- Configuring environment variables with auto-detection
+- Creating the necessary configuration files
+
+The script supports several modes:
+
+**Interactive Mode** (default):
+```bash
+$ ./setup-workspace.sh
+```
+
+**Configuration File Mode** (for automation):
+```bash
+$ ./setup-workspace.sh -c setup.yaml
+```
+
+**Dry-run Mode** (preview changes without applying):
+```bash
+$ ./setup-workspace.sh --dry-run
+```
+
+**Help**:
+```bash
+$ ./setup-workspace.sh --help
+```
+
+#### Configuration File Format
+
+For automated setup, you can create a `setup.yaml` file (see `setup.example.yaml` for a template):
+
+```yaml
+docker_compose:
+  variant: "gui"  # Options: base, gui, nvidia, gui-nvidia, vscode
+  
+environment:
+  ament_workspace_dir: "/ros2_ws"
+  ros_domain_id: 0
+  your_ip: "auto"  # or specific IP like "192.168.1.100"
+  robot_ip: "127.0.0.1"
+  robot_hostname: "P500"
+  uid: "auto"  # or specific UID
+  gid: "auto"  # or specific GID
+```
+
+Then run:
+```bash
+$ ./setup-workspace.sh -c setup.yaml
+```
+
+### Manual Setup
+
 After cloning this repository you will have to update the packages inside the workspace. For version control we use [`vcstool`](http://wiki.ros.org/vcstool) instead of Git submodules. In order to **pull the repositories** please import them with the following command (either inside the Docker or on the host):
 
 ```
@@ -41,10 +101,10 @@ $ vcs import < .repos
 
 This should clone the desired repositories given inside `.repos` into your workspace. They are excluded in the [`.gitignore`](./.gitignore) file so that they will not be part of your commits.
 
-The **configuration** is performed inside the [`docker/.env`](./docker/.env) file:
+If you prefer manual configuration, edit the [`docker/.env`](./docker/.env) file:
 
 ```bash
-AMENT_WORKSPACE_DIR=/ament_ws
+AMENT_WORKSPACE_DIR=/ros2_ws
 ROS_DOMAIN_ID=0
 YOUR_IP=127.0.0.1
 ROBOT_IP=127.0.0.1
@@ -63,21 +123,48 @@ Here you can change the workspace name, network settings as well as user and gro
 
 ## 2. Running
 
-Either **run the Docker** manually with
+### Using the Setup Script
+
+If you used the setup script, you can start your configured Docker container with:
 
 ```bash
-$ cd ros2/
+$ docker compose -f docker-compose.active.yml up -d
+```
+
+Then connect to the running container:
+
+```bash
+$ docker exec -it ros2_docker bash
+```
+
+The `docker-compose.active.yml` symlink points to your selected configuration (created by the setup script).
+
+### Manual Method
+
+Alternatively, **run the Docker** manually with a specific compose file:
+
+```bash
 $ docker compose -f docker/docker-compose-gui.yml up
 ```
 
 and then connect to the running Docker
 
 ```bash
-$ cd ros2/
 $ docker exec -it ros2_docker bash
 ```
 
-(or `docker/docker-compose-gui-nvidia.yml` in case you are running an Nvidia graphics cards and want to have hardware acceleration [with the Nvidia container runtime](https://nvidia.github.io/nvidia-container-runtime/)). Alternatively use the corresponding [**Visual Studio Code Dev Containers integration**](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) as described [here](https://github.com/2b-t/docker-for-robotics/blob/main/doc/VisualStudioCodeSetup.md). In latter case the configuration can be adjusted in `docker/docker-compose-vscode.yml`. Using the Docker through Visual Studio Code is much easier and is therefore recommended!
+Available compose files:
+- `docker/docker-compose.yml` - Base configuration
+- `docker/docker-compose-gui.yml` - With GUI support
+- `docker/docker-compose-nvidia.yml` - With NVIDIA GPU support
+- `docker/docker-compose-gui-nvidia.yml` - With GUI and NVIDIA GPU support
+- `docker/docker-compose-vscode.yml` - For VSCode development
+
+### VSCode Integration
+
+For [**Visual Studio Code Dev Containers integration**](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers), see the guide [here](https://github.com/2b-t/docker-for-robotics/blob/main/doc/VisualStudioCodeSetup.md). The configuration can be adjusted in `docker/docker-compose-vscode.yml`. Using Docker through Visual Studio Code is much easier and is therefore recommended!
+
+### GUI Applications
 
 In order to be able to run **graphical user interfaces** from inside the Docker you might have to type
 

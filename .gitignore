@@ -1,2 +1,8 @@
 src/*
 !src/.repos
+
+# Setup script generated files
+docker-compose.active.yml
+docker/.env.backup.*
+setup.yaml
+setup.json
