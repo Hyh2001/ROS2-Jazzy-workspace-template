@@ -18,6 +18,7 @@ ros/
 │   ├── docker-compose.yml              # Base Docker-Compose file containing all the basic Docker set-up
 │   ├── docker-compose-gui.yml          # Extends the base Docker-Compose file by X11-forwarding for graphic user interfaces
 │   ├── docker-compose-gui-nvidia.yml   # Extends the graphic user interface Docker-Compose file with the Nvidia runtime
+│   ├── docker-compose-gui-amd.yml      # Extends GUI support with AMD graphics through Mesa
 │   ├── docker-compose-nvidia.yml       # Extends the base Docker-Compose file with the Nvidia runtime for graphic acceleration
 │   ├── docker-compose-vscode.yml       # Extends one of the other configurations with Visual Studio Code relevant settings
 │   ├── Dockerfile                      # Dockerfile containing ROS 2 and the base dependencies
@@ -41,7 +42,7 @@ $ ./setup-workspace.sh
 ```
 
 This script will guide you through:
-- Selecting a Docker Compose configuration (base, gui, nvidia, gui-nvidia, or vscode)
+- Selecting a Docker Compose configuration (base, gui, nvidia, gui-nvidia, gui-amd, or vscode)
 - Configuring environment variables with auto-detection
 - Creating the necessary configuration files
 
@@ -73,7 +74,7 @@ For automated setup, you can create a `setup.yaml` file (see `setup.example.yaml
 
 ```yaml
 docker_compose:
-  variant: "gui"  # Options: base, gui, nvidia, gui-nvidia, vscode
+  variant: "gui"  # Options: base, gui, nvidia, gui-nvidia, gui-amd, vscode
   
 environment:
   ament_workspace_dir: "/ros2_ws"
@@ -158,7 +159,21 @@ Available compose files:
 - `docker/docker-compose-gui.yml` - With GUI support
 - `docker/docker-compose-nvidia.yml` - With NVIDIA GPU support
 - `docker/docker-compose-gui-nvidia.yml` - With GUI and NVIDIA GPU support
+- `docker/docker-compose-gui-amd.yml` - With GUI and AMD GPU support through Mesa
 - `docker/docker-compose-vscode.yml` - For VSCode development
+
+### AMD Graphics
+
+For an AMD CPU and AMD graphics card, set `docker_compose.variant` to `"gui-amd"` in `setup.yaml`, then run:
+
+```bash
+./setup-workspace.sh -c setup.yaml
+docker compose --env-file docker/.env -f docker/docker-compose-gui-amd.yml up --build -d
+```
+
+The setup script detects the numeric group IDs of the host's `/dev/dri/renderD*` and `/dev/dri/card*` devices and writes `DRM_RENDER_GID` and `DRM_VIDEO_GID` to `docker/.env`. The Compose variant grants the container user those groups and exposes `/dev/dri` for GPU rendering. The host AMD graphics driver must be working and those devices must exist.
+
+This variant builds from Ubuntu 24.04 with Mesa libraries and supports OpenGL GUI acceleration for tools such as RViz and Gazebo. It does not install ROCm for GPU compute. GUI display access uses the same X11 setup described below.
 
 ### VSCode Integration
 

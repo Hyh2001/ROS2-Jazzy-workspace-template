@@ -3,7 +3,8 @@
 # Usage: ./setup-workspace.sh -c setup.yaml
 
 # Docker Compose variant selection
-# Options: base, gui, nvidia, gui-nvidia, vscode
+# Options: base, gui, nvidia, gui-nvidia, gui-amd, vscode
+# Use gui-amd for AMD graphics; setup detects the host's /dev/dri group IDs.
 docker_compose:
   variant: "gui"
 

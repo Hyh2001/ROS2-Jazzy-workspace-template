@@ -39,6 +39,8 @@ ROBOT_IP=""
 ROBOT_HOSTNAME=""
 UID_VALUE=""
 GID_VALUE=""
+DRM_RENDER_GID=""
+DRM_VIDEO_GID=""
 
 # Function to print colored output
 print_color() {
@@ -110,6 +112,7 @@ ${BOLD}DOCKER COMPOSE VARIANTS:${NC}
     - gui:          Adds X11 forwarding for GUI applications
     - nvidia:       Adds NVIDIA GPU support
     - gui-nvidia:   Combines GUI and NVIDIA GPU support
+    - gui-amd:      Combines GUI and AMD GPU support through Mesa
     - vscode:       Development setup for VSCode
 
 ${BOLD}ENVIRONMENT VARIABLES:${NC}
@@ -248,6 +251,7 @@ select_compose_variant() {
     echo "  3) nvidia       - Adds NVIDIA GPU support"
     echo "  4) gui-nvidia   - Combines GUI and NVIDIA GPU support"
     echo "  5) vscode       - Development setup for VSCode"
+    echo "  6) gui-amd      - Combines GUI and AMD GPU support through Mesa"
     echo ""
     
     # Auto-detect GPU
@@ -258,14 +262,15 @@ select_compose_variant() {
     
     echo ""
     while true; do
-        read -p "$(print_color ${CYAN} "Enter your choice (1-5): ")" choice
+        read -p "$(print_color ${CYAN} "Enter your choice (1-6): ")" choice
         case $choice in
             1) SELECTED_VARIANT="base"; break;;
             2) SELECTED_VARIANT="gui"; break;;
             3) SELECTED_VARIANT="nvidia"; break;;
             4) SELECTED_VARIANT="gui-nvidia"; break;;
             5) SELECTED_VARIANT="vscode"; break;;
-            *) print_error "Invalid choice. Please enter 1-5.";;
+            6) SELECTED_VARIANT="gui-amd"; break;;
+            *) print_error "Invalid choice. Please enter 1-6.";;
         esac
     done
     
@@ -369,6 +374,23 @@ configure_environment() {
     done
 }
 
+# Use the host's numeric device groups for the non-root container user.
+configure_gpu_groups() {
+    if [ "$SELECTED_VARIANT" != "gui-amd" ]; then
+        return
+    fi
+
+    local render_devices=(/dev/dri/renderD*)
+    local card_devices=(/dev/dri/card[0-9]*)
+    if [ ! -e "${render_devices[0]}" ] || [ ! -e "${card_devices[0]}" ]; then
+        print_error "gui-amd requires host graphics devices under /dev/dri. Check that the host AMD graphics driver is loaded."
+        exit 1
+    fi
+
+    DRM_RENDER_GID=$(stat -c '%g' "${render_devices[0]}")
+    DRM_VIDEO_GID=$(stat -c '%g' "${card_devices[0]}")
+}
+
 # Function to display summary
 display_summary() {
     print_header "Configuration Summary"
@@ -385,6 +407,10 @@ display_summary() {
     echo "  ROBOT_HOSTNAME      = ${ROBOT_HOSTNAME}"
     echo "  UID                 = ${UID_VALUE}"
     echo "  GID                 = ${GID_VALUE}"
+    if [ "$SELECTED_VARIANT" = "gui-amd" ]; then
+        echo "  DRM_RENDER_GID      = ${DRM_RENDER_GID}"
+        echo "  DRM_VIDEO_GID       = ${DRM_VIDEO_GID}"
+    fi
     echo ""
     
     if [ "$DRY_RUN" = true ]; then
@@ -422,6 +448,10 @@ ROBOT_HOSTNAME=${ROBOT_HOSTNAME}
 UID=${UID_VALUE}
 GID=${GID_VALUE}
 EOF
+
+    if [ "$SELECTED_VARIANT" = "gui-amd" ]; then
+        printf 'DRM_RENDER_GID=%s\nDRM_VIDEO_GID=%s\n' "$DRM_RENDER_GID" "$DRM_VIDEO_GID" >> "$ENV_FILE"
+    fi
     
     print_success "Updated: $ENV_FILE"
     
@@ -460,6 +490,8 @@ display_next_steps() {
     echo "2. Start the Docker container:"
     if [ "$SELECTED_VARIANT" = "vscode" ]; then
         print_color "${CYAN}" "   Open this folder in VSCode and reopen in container"
+    elif [ "$SELECTED_VARIANT" = "gui-amd" ]; then
+        print_color "${CYAN}" "   docker compose --env-file docker/.env -f docker/docker-compose-gui-amd.yml up --build -d"
     else
         print_color "${CYAN}" "   docker compose -f docker-compose.active.yml up -d"
     fi
@@ -500,6 +532,8 @@ main() {
         configure_environment
     fi
     
+    configure_gpu_groups
+
     # Display summary and confirm
     display_summary
     

@@ -1,7 +1,8 @@
 ##############
 # Base image #
 ##############
-FROM nvidia/cuda:13.0.1-cudnn-runtime-ubuntu24.04 AS base
+ARG BASE_IMAGE=nvidia/cuda:13.0.1-cudnn-runtime-ubuntu24.04
+FROM ${BASE_IMAGE} AS base
 
 ARG AMENT_WORKSPACE_DIR="/ament_ws"
 
@@ -26,9 +27,12 @@ RUN apt-get update \
     curl \
     git \
     libegl1 \
+    libegl-mesa0 \
     libgl1 \
+    libgl1-mesa-dri \
     libglvnd0 \
     libglx0 \
+    libglx-mesa0 \
     libx11-6 \
     libxext6 \
     software-properties-common \

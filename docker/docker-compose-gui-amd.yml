@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  ros2_docker:
+    extends:
+      file: docker-compose-gui.yml
+      service: ros2_docker
+    build:
+      args:
+        BASE_IMAGE: ubuntu:24.04
+    runtime: runc
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "${DRM_RENDER_GID:?Set DRM_RENDER_GID to the host render device group ID, or run setup-workspace.sh with gui-amd}"
+      - "${DRM_VIDEO_GID:?Set DRM_VIDEO_GID to the host card device group ID, or run setup-workspace.sh with gui-amd}"
