@@ -1,0 +1,41 @@
+# ROS2 Workspace Setup Configuration Example
+# Copy this file to setup.yaml and modify as needed
+# Usage: ./setup-workspace.sh -c setup.yaml
+
+# Docker Compose variant selection
+# Options: base, gui, nvidia, gui-nvidia, vscode
+docker_compose:
+  variant: "gui"
+
+# Environment variables for Docker container
+environment:
+  # Workspace directory inside the container
+  ament_workspace_dir: "/ros2_ws"
+  
+  # ROS 2 Domain ID for DDS communication
+  # Valid range: 0-101 (use different IDs to isolate multiple ROS systems)
+  ros_domain_id: 0
+  
+  # Your machine's IP address
+  # Use "auto" to auto-detect, "127.0.0.1" for localhost,
+  # or specify an IP like "192.168.1.100"
+  your_ip: "auto"
+  
+  # Robot's IP address
+  # Use "127.0.0.1" for simulation or specify robot's actual IP
+  robot_ip: "127.0.0.1"
+  
+  # Robot's hostname
+  # This will be added to /etc/hosts in the container
+  robot_hostname: "P500"
+  
+  # User ID - use "auto" to match current user or specify a UID
+  uid: "auto"
+  
+  # Group ID - use "auto" to match current user or specify a GID
+  gid: "auto"
+
+# VSCode specific settings (optional)
+# Only relevant when using vscode variant
+vscode:
+  enabled: true
